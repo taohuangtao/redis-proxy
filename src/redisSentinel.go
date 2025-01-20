@@ -32,7 +32,7 @@ type Task struct {
 	PASSWORD   string
 }
 
-func NewTask() *Task {
+func newTask() *Task {
 	t := &Task{
 		ZK_HOSTS: config.ZK_HOSTS,
 	}
@@ -48,7 +48,7 @@ func NewTask() *Task {
 	return t
 }
 
-func (t *Task) Lock() bool {
+func (t *Task) lock() bool {
 	_, err := t.zk.Create("/redis_ht_sentinel/task_lock", []byte{}, zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		if err == zk.ErrNodeExists {
@@ -59,12 +59,12 @@ func (t *Task) Lock() bool {
 	return true
 }
 
-func (t *Task) Clear() {
+func (t *Task) clear() {
 	t.zk.Close()
 }
 
-func (t *Task) Run() {
-	if t.Lock() {
+func (t *Task) run() {
+	if t.lock() {
 		logger.Println("获得锁")
 		t._run()
 	} else {
@@ -183,9 +183,9 @@ func (t *Task) _run() {
 func RunSentinel() {
 	for {
 		logger.Println("start")
-		task := NewTask()
-		task.Run()
-		task.Clear()
+		task := newTask()
+		task.run()
+		task.clear()
 		logger.Println("睡眠随机时间")
 		time.Sleep(time.Duration(1+rand.Float64()*10) * time.Second)
 	}
