@@ -50,8 +50,5 @@ func GetZkHosts() []string {
 }
 
 func useRunRedisSentinel() bool {
-	if os.Getenv("RUN_REDIS_SENTINEL") == "true" {
-		return true
-	}
-	return false
+	return os.Getenv("RUN_REDIS_SENTINEL") == "true"
 }
