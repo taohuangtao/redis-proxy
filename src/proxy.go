@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"redis-proxy/src/config"
+	"sync"
 	"time"
 )
 
@@ -16,6 +17,8 @@ type RedisInfo struct {
 }
 
 var redisInfo = RedisInfo{}
+
+var rwLock sync.RWMutex
 
 func handleConnection(clientConn net.Conn, serverAddr string) {
 	defer clientConn.Close()
@@ -43,8 +46,16 @@ func checkMaster() {
 		if config.DEBUG {
 			log.Println("DEBUG", "checking master")
 		}
+		rwLock.Lock() // 写锁
 		redisInfo.master_host = GetMaster(redisInfo.host_list, redisInfo.password)
+		rwLock.Unlock()
 	}
+}
+
+func getMaster() string {
+	rwLock.RLock()
+	defer rwLock.RUnlock()
+	return redisInfo.master_host
 }
 
 func RunProxy(local_addr string, host_list []string, password string) {
@@ -73,7 +84,7 @@ func RunProxy(local_addr string, host_list []string, password string) {
 		if config.DEBUG {
 			log.Println("DEBUG", "new connection")
 		}
-		remoteAddr := redisInfo.master_host
+		remoteAddr := getMaster()
 		// Handle the connection in a new goroutine
 		go handleConnection(clientConn, remoteAddr)
 	}
