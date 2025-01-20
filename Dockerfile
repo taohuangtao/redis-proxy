@@ -9,8 +9,8 @@ RUN export CGO_ENABLED=0  \
     && export GOOS=linux  \
     && export GOARCH=amd64 \
     && export GOPROXY=https://goproxy.cn \
-    && go install \
-    && go build
+    && go install 
+RUN go build
 
 
 FROM alpine
