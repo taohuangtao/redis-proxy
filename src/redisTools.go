@@ -67,7 +67,7 @@ func isRedisMaster(ctx context.Context, client *redis.Client) (bool, error) {
 	info, err := client.Info(ctx, "replication").Result()
 
 	if DEBUG {
-		log.Println("DEBUG", "info: "+info)
+		// log.Println("DEBUG", "info: "+info)
 	}
 	if err != nil {
 		return false, fmt.Errorf("failed to get info: %v", err)

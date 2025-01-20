@@ -1,8 +1,8 @@
 package src
 
 import (
-	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"redis-proxy/src/config"
@@ -23,7 +23,7 @@ func handleConnection(clientConn net.Conn, serverAddr string) {
 	// Connect to the server
 	serverConn, err := net.Dial("tcp", serverAddr)
 	if err != nil {
-		fmt.Println("Error connecting to server:", err.Error())
+		log.Println("Error connecting to server:", err.Error())
 		return
 	}
 	defer serverConn.Close()
@@ -34,11 +34,14 @@ func handleConnection(clientConn net.Conn, serverAddr string) {
 }
 
 func checkMaster() {
-	ticker := time.NewTicker(2 * time.Second)
+	redisInfo.master_host = GetMaster(redisInfo.host_list, redisInfo.password)
+
+	// 定时执行master检查
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	for range ticker.C {
 		if config.DEBUG {
-			fmt.Println("checking master")
+			log.Println("DEBUG", "checking master")
 		}
 		redisInfo.master_host = GetMaster(redisInfo.host_list, redisInfo.password)
 	}
@@ -49,23 +52,26 @@ func RunProxy(local_addr string, host_list []string, password string) {
 	localAddr := local_addr //"127.0.0.1:8080"
 	redisInfo.host_list = host_list
 	redisInfo.password = password
-	checkMaster()
+	go checkMaster()
 
 	// Listen for incoming connections
 	listener, err := net.Listen("tcp", localAddr)
 	if err != nil {
-		fmt.Println("Error starting TCP server:", err.Error())
+		log.Println("ERROR", "Error starting TCP server:", err.Error())
 		os.Exit(1)
 	}
 	defer listener.Close()
-	fmt.Println("TCP Proxy listening on", localAddr)
+	log.Println("TCP Proxy listening on", localAddr)
 
 	for {
 		// Wait for a connection
 		clientConn, err := listener.Accept()
 		if err != nil {
-			fmt.Println("Error accepting connection:", err.Error())
+			log.Println("ERROR", " accepting connection:", err.Error())
 			continue
+		}
+		if config.DEBUG {
+			log.Println("DEBUG", "new connection")
 		}
 		remoteAddr := redisInfo.master_host
 		// Handle the connection in a new goroutine
