@@ -13,11 +13,7 @@ var ZK_HOSTS []string = getZkHosts()
 var RUN_REDIS_SENTINEL bool = useRunRedisSentinel()
 
 func getDebug() bool {
-	if os.Getenv("DEBUG") == "true" {
-		return true
-	} else {
-		return false
-	}
+	return os.Getenv("DEBUG") == "true"
 }
 
 func getLocalAddr() string {
