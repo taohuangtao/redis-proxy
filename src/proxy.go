@@ -71,7 +71,12 @@ func RunProxy(local_addr string, host_list []string, password string) {
 	localAddr := local_addr //"127.0.0.1:8080"
 	redisInfo.host_list = host_list
 	redisInfo.password = password
+	// 启动master检查
 	go checkMaster()
+	// 启动redis sentinel
+	if config.RUN_REDIS_SENTINEL {
+		go RunSentinel()
+	}
 
 	// Listen for incoming connections
 	listener, err := net.Listen("tcp", localAddr)

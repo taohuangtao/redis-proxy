@@ -4,12 +4,16 @@ FROM golang:1.23 as builder
 USER root
 
 WORKDIR /root/
-COPY . /root/
+COPY go.mod /root/go.mod
+COPY go.sum /root/go.sum
+RUN cat /root/go.mod
 RUN export CGO_ENABLED=0  \
     && export GOOS=linux  \
     && export GOARCH=amd64 \
     && export GOPROXY=https://goproxy.cn \
     && go install 
+
+COPY . /root/
 RUN go build
 
 
