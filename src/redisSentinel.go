@@ -106,7 +106,7 @@ func (t *Task) _run() {
 		host := _redisHost[0]
 		port := _redisHost[1]
 		rdb := redis.NewClient(&redis.Options{
-			Addr:     fmt.Sprintf("%s:%d", host, port),
+			Addr:     fmt.Sprintf("%s:%s", host, port),
 			Password: t.PASSWORD,
 			DB:       0,
 		})
@@ -137,7 +137,7 @@ func (t *Task) _run() {
 		masterInfo = slaveList[0]
 		slaveList = slaveList[1:]
 		rdb := redis.NewClient(&redis.Options{
-			Addr:     fmt.Sprintf("%s:%d", masterInfo["host"], masterInfo["port"]),
+			Addr:     fmt.Sprintf("%s:%s", masterInfo["host"], masterInfo["port"]),
 			Password: t.PASSWORD,
 			DB:       0,
 		})
@@ -164,7 +164,7 @@ func (t *Task) _run() {
 		host := sInfo["host"]
 		port := sInfo["port"]
 		rdb := redis.NewClient(&redis.Options{
-			Addr:     fmt.Sprintf("%s:%d", host, port),
+			Addr:     fmt.Sprintf("%s:%s", host, port),
 			Password: t.PASSWORD,
 			DB:       0,
 		})
