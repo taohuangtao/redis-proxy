@@ -23,6 +23,10 @@ var rwLock sync.RWMutex
 func handleConnection(clientConn net.Conn, serverAddr string) {
 	defer clientConn.Close()
 
+	if config.DEBUG {
+		log.Println("DEBUG", "new connection")
+	}
+
 	// Connect to the server
 	serverConn, err := net.Dial("tcp", serverAddr)
 	if err != nil {
@@ -34,6 +38,10 @@ func handleConnection(clientConn net.Conn, serverAddr string) {
 	// Copy data from client to server and vice versa
 	go io.Copy(serverConn, clientConn) // client -> server
 	io.Copy(clientConn, serverConn)    // server -> client
+
+	if config.DEBUG {
+		log.Println("DEBUG", "connection closed")
+	}
 }
 
 func checkMaster() {
@@ -80,9 +88,6 @@ func RunProxy(local_addr string, host_list []string, password string) {
 		if err != nil {
 			log.Println("ERROR", " accepting connection:", err.Error())
 			continue
-		}
-		if config.DEBUG {
-			log.Println("DEBUG", "new connection")
 		}
 		remoteAddr := getMaster()
 		// Handle the connection in a new goroutine
