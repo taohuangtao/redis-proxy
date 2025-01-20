@@ -25,5 +25,6 @@ WORKDIR /data
 
 COPY --from=builder /root/redis-proxy .
 ENV DEBUG=false
-EXPOSE 8080
+ENV LOCAL_ADDR=127.0.0.1:6379
+EXPOSE 6379
 CMD ["./redis-proxy"]
