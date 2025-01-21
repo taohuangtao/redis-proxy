@@ -6,7 +6,6 @@ USER root
 WORKDIR /root/
 COPY go.mod /root/go.mod
 COPY go.sum /root/go.sum
-RUN cat /root/go.mod
 RUN export CGO_ENABLED=0  \
     && export GOOS=linux  \
     && export GOARCH=amd64 \
