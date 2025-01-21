@@ -11,7 +11,7 @@ RUN export CGO_ENABLED=0  \
     && export GOOS=linux  \
     && export GOARCH=amd64 \
     && export GOPROXY=https://goproxy.cn \
-    && go install 
+    && go mod download 
 
 COPY . /root/
 RUN go build
