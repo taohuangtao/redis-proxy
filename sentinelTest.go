@@ -4,6 +4,6 @@ import (
 	"redis-proxy/src"
 )
 
-func main() {
+func _main() {
 	src.RunSentinel()
 }
