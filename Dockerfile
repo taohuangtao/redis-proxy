@@ -27,6 +27,7 @@ RUN mkdir /data
 WORKDIR /data
 
 COPY --from=builder /root/redis-proxy .
+RUN chmod +x redis-proxy
 ENV DEBUG=false
 ENV LOCAL_ADDR=127.0.0.1:6379
 EXPOSE 6379
