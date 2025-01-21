@@ -1,0 +1,118 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-cluster-config
+  namespace: rmtpt-83487d
+data:
+  redis.conf: |
+    dir /data/POD_NAME/data
+    Maxmemory 3GB
+    port 6379
+    appendonly yes
+    protected-mode no
+    requirepass QFvFFdlYRtvljbYQ
+    masterauth QFvFFdlYRtvljbYQ
+  update-node.sh: |
+    #!/bin/sh
+    if [ ! -d "/data/${POD_NAME}/data" ]; then 
+      mkdir -p /data/${POD_NAME}/data
+    fi
+    sed "s/POD_NAME/${POD_NAME}/" /conf/redis.conf > /data/${POD_NAME}/redis.conf
+    redis-server /data/${POD_NAME}/redis.conf
+
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: redis-cluster
+  namespace: rmtpt-83487d
+spec:
+  replicas: 3
+  serviceName: redis-cluster
+  selector:
+    matchLabels:
+      app: redis-cluster
+  template:
+    metadata:
+      labels:
+        app: redis-cluster
+    spec:
+      volumes:
+        - name: conf
+          configMap:
+            name: redis-cluster-config
+            defaultMode: 493
+      containers:
+        - name: redis
+          image: 'index.miaoyun:20404/rmtpt-83487d/redis:5.0.5-alpine'
+          command:
+            - /conf/update-node.sh
+          ports:
+            - name: client
+              containerPort: 6379
+              protocol: TCP
+            - name: gossip
+              containerPort: 16379
+              protocol: TCP
+          env:
+            - name: RESTART
+              value: '2'
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          resources: {}
+          volumeMounts:
+            - name: conf
+              mountPath: /conf
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+
+
+
+
+--- # 无头服务
+kind: Service
+apiVersion: v1
+metadata:
+  name: redis-cluster
+  namespace: rmtpt-83487d
+spec:
+  ports:
+    - name: redis
+      protocol: TCP
+      port: 6379
+      targetPort: 6379
+  selector:
+    app: redis-cluster
+  clusterIP: None
+  type: ClusterIP
+  sessionAffinity: None
+status:
+  loadBalancer: {}
+
+
+#
+# # 将当前服务器转变为指定服务器的从属服务器(slave server)
+# '''redis-cluster:6379
+# SLAVEOF host port
+# SLAVEOF redis-cluster-0.redis-cluster.rmtcloud.svc.kn.pengbei.net 6379
+# '''
+
+# # 切换为 master 
+# '''
+# SLAVEOF NO ONE
+# '''
+# telnet  redis-haproxy-service 8080
+# prompt
+
+# redis-cluster-1.redis-cluster.rmtcloud.svc.kn.pengbei.net
+# redis-cluster-0.redis-cluster.rmtcloud.svc.kn.pengbei.net
