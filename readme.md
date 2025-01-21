@@ -6,8 +6,8 @@
 ## 配置信息，通过环境变量配置
 ```
 LOCAL_ADDR=127.0.0.1:28080 # 本地监听的端口
-REDIS_HOSTS=rds.internal.pengbei.net:6379,rds.internal.pengbei.net:6379 # redis地址，多个用逗号分隔
+REDIS_HOSTS=192.168.1.11:6379,192.168.1.12:6379 # redis地址，多个用逗号分隔
 REDIS_PASSWORD=123456 # redis密码
-ZK_HOSTS=127.0.0.1:2181,127.0.0.1:2181 # zookeeper地址，多个用逗号分隔
+ZK_HOSTS=192.168.1.21:2181,192.168.1.22:2181,192.168.1.23:2181 # zookeeper地址，多个用逗号分隔
 RUN_REDIS_SENTINEL=true # 是否使用redis哨兵
 ```
