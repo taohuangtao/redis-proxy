@@ -2,7 +2,6 @@ package src
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand/v2"
@@ -41,6 +40,14 @@ func newTask() *Task {
 	if err != nil {
 		logger.Fatalf("Failed to connect to Zookeeper: %v", err)
 	}
+	path := "/redis_ht_sentinel"
+	exists, _, err := t.zk.Exists(path)
+	if err != nil {
+		logger.Fatalf("failed to check existence of node %s: %v", path, err)
+	}
+	if !exists {
+		t.zk.Create(path, []byte{}, 0, zk.WorldACL(zk.PermAll))
+	}
 
 	t.REDIS_LIST = config.REDIS_HOSTS
 	t.PASSWORD = config.REDIS_PWD
@@ -73,85 +80,95 @@ func (t *Task) run() {
 }
 
 func (t *Task) _run() {
-	var masterInfo = map[string]string{}
-	data, _, err := t.zk.Get("/redis_ht_sentinel/last_master")
+	// 检查zk上一次检测存储的master记录，如果还是master就保持不变
+	last_master, _, err := t.zk.Get("/redis_ht_sentinel/last_master")
+	var master_host string
 	if err == nil {
-		err = json.Unmarshal(data, &masterInfo)
-		if err != nil {
-			logger.Printf("Failed to unmarshal last master data: %v", err)
-		} else {
-			host := masterInfo["host"]
-			port := masterInfo["port"]
+		_master_host := string(last_master)
+		if config.DEBUG {
+			logger.Printf("_master_host: %v", _master_host)
+		}
+
+		if _master_host != "" {
 			rdb := redis.NewClient(&redis.Options{
-				Addr:     fmt.Sprintf("%s:%s", host, port),
+				Addr:     _master_host,
 				Password: t.PASSWORD,
 				DB:       0,
 			})
 			info, err := rdb.Info(context.Background(), "replication").Result()
 			if err != nil {
-				logger.Printf("Connection error, skipping %s", host)
+				logger.Printf("Connection error, skipping %s err: %s", _master_host, err)
 			} else {
+				if config.DEBUG {
+					logger.Printf("master replication: %v", info)
+				}
 				if strings.Contains(info, "role:master") {
-					masterInfo = map[string]string{"host": host, "port": port}
+					// 还是master
+					master_host = _master_host
 				}
 			}
 		}
+
 	} else if err != zk.ErrNoNode {
 		logger.Printf("Failed to get last master data: %v", err)
 	}
 
-	var slaveList []map[string]string
-	for _, redisHost := range t.REDIS_LIST {
-		_redisHost := strings.Split(redisHost, ":")
-		host := _redisHost[0]
-		port := _redisHost[1]
+	// 检测所有几点是
+	var slaveList []string
+	for _, redis_host := range t.REDIS_LIST {
 		rdb := redis.NewClient(&redis.Options{
-			Addr:     fmt.Sprintf("%s:%s", host, port),
+			Addr:     redis_host,
 			Password: t.PASSWORD,
 			DB:       0,
 		})
 		info, err := rdb.Info(context.Background(), "replication").Result()
 		if err != nil {
-			logger.Printf("Connection error, skipping %s", host)
+			logger.Printf("Connection error, skipping %s", redis_host)
 			continue
 		}
-		logger.Printf("replication %s", info)
+		if config.DEBUG {
+			logger.Printf("replication %s", info)
+		}
+
+		// 是role:master
 		if strings.Contains(info, "role:master") {
-			logger.Printf("is master %s", host)
-			if masterInfo == nil {
-				masterInfo = map[string]string{"host": host, "port": port}
-			} else if masterInfo["host"] != host || masterInfo["port"] != port {
+			logger.Printf("is master %s", redis_host)
+			if master_host == "" {
+				// 上一轮没有master,把这个设置为master
+				master_host = redis_host
+			} else if master_host != redis_host {
 				// # 已经有一个master,但当前也是master,说明主从已经断开，将当前设置为slave 重新连上master
-				logger.Printf("连上master[ slave: %s master: %s ]", host, masterInfo["host"])
-				rdb.SlaveOf(context.Background(), masterInfo["host"], masterInfo["port"])
+				logger.Printf("连上master[ slave: %s master: %s ]", redis_host, master_host)
+				masterInfo := strings.Split(master_host, ":")
+				rdb.SlaveOf(context.Background(), masterInfo[0], masterInfo[1])
 			}
 		} else {
-			logger.Println("is slave")
-			slaveList = append(slaveList, map[string]string{"host": host, "port": port})
+			if config.DEBUG {
+				logger.Printf("is slave %s", redis_host)
+			}
+			slaveList = append(slaveList, redis_host)
 		}
 	}
 
-	if masterInfo == nil {
+	if master_host == "" {
 		logger.Println("-ERROR-ERROR-ERROR---- 没有找到 master -----ERROR-ERROR-ERROR-")
 		logger.Println("-ERROR-ERROR-ERROR---- 重新将第一个slave 标记为master -----ERROR-ERROR-ERROR-")
-		masterInfo = slaveList[0]
+		master_host = slaveList[0]
 		slaveList = slaveList[1:]
 		rdb := redis.NewClient(&redis.Options{
-			Addr:     fmt.Sprintf("%s:%s", masterInfo["host"], masterInfo["port"]),
+			Addr:     master_host,
 			Password: t.PASSWORD,
 			DB:       0,
 		})
 		rdb.SlaveOf(context.Background(), "NO", "ONE")
 	}
 
-	data, err = json.Marshal(masterInfo)
-	if err != nil {
-		logger.Fatalf("Failed to marshal master info: %v", err)
-	}
-	_, err = t.zk.Create("/redis_ht_sentinel/last_master", data, 0, zk.WorldACL(zk.PermAll))
+	logger.Printf("-------- master %s -------", master_host)
+	// 存储最终master
+	_, err = t.zk.Create("/redis_ht_sentinel/last_master", []byte(master_host), 0, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		if err == zk.ErrNodeExists {
-			_, err = t.zk.Set("/redis_ht_sentinel/last_master", data, -1)
+			_, err = t.zk.Set("/redis_ht_sentinel/last_master", []byte(master_host), -1)
 			if err != nil {
 				logger.Fatalf("Failed to set last master data: %v", err)
 			}
@@ -160,22 +177,26 @@ func (t *Task) _run() {
 		}
 	}
 
-	for _, sInfo := range slaveList {
-		host := sInfo["host"]
-		port := sInfo["port"]
+	// 所有slave全部重新连上master
+	for _, slave_host := range slaveList {
 		rdb := redis.NewClient(&redis.Options{
-			Addr:     fmt.Sprintf("%s:%s", host, port),
+			Addr:     slave_host,
 			Password: t.PASSWORD,
 			DB:       0,
 		})
 		info, err := rdb.Info(context.Background(), "replication").Result()
 		if err != nil {
-			logger.Printf("Connection error, skipping %s", host)
+			logger.Printf("Connection error, skipping %s", slave_host)
 			continue
 		}
-		if !strings.Contains(info, fmt.Sprintf("master_host:%s", masterInfo["host"])) {
-			logger.Printf("连上master[ slave: %s master: %s ]", host, masterInfo["host"])
-			rdb.SlaveOf(context.Background(), masterInfo["host"], masterInfo["port"])
+		if config.DEBUG {
+			logger.Println(info)
+		}
+
+		masterInfo := strings.Split(master_host, ":")
+		if !strings.Contains(info, fmt.Sprintf("master_host:%s", masterInfo[0])) || !strings.Contains(info, fmt.Sprintf("master_port:%s", masterInfo[1])) {
+			logger.Printf("重新连上 master[ slave: %s master: %s ]", slave_host, master_host)
+			rdb.SlaveOf(context.Background(), masterInfo[0], masterInfo[1])
 		}
 	}
 }

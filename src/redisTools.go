@@ -3,7 +3,6 @@ package src
 import (
 	"context"
 	"fmt"
-	"log"
 	"redis-proxy/src/config"
 	"strings"
 
@@ -26,22 +25,22 @@ func check(host string, password string) bool {
 	// 测试连接
 	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
-		log.Fatalf("Error connecting to Redis: %v Host: %v", err, host)
+		logger.Fatalf("Error connecting to Redis: %v Host: %v", err, host)
 	}
 	if DEBUG {
-		log.Println("DEBUG", host+"Connected to Redis")
+		logger.Println("DEBUG", host+"Connected to Redis")
 	}
 
 	// 检查是否为主节点
 	isMaster, err := isRedisMaster(ctx, rdb)
 	if err != nil {
-		log.Fatalf("Error checking Redis role: %v", err)
+		logger.Fatalf("Error checking Redis role: %v", err)
 	}
 	if DEBUG {
 		if isMaster {
-			log.Println("DEBUG", host+" is a master.")
+			logger.Println("DEBUG", host+" is a master.")
 		} else {
-			log.Println("DEBUG", host+" is not a master.")
+			logger.Println("DEBUG", host+" is not a master.")
 		}
 	}
 
@@ -54,7 +53,7 @@ func GetMaster(host_list []string, password string) string {
 		host := host_list[i]
 		if check(host, password) {
 			if DEBUG {
-				log.Println("DEBUG", host+" is a master.")
+				logger.Println("DEBUG", host+" is a master.")
 			}
 			return host
 		}

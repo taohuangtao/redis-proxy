@@ -24,14 +24,14 @@ func getLocalAddr() string {
 	return local_addr
 }
 func getRedisHosts() []string {
-	redis_host_list := []string{"rds.internal.pengbei.net:6379"}
+	redis_host_list := []string{"127.0.0.1:6379"}
 	if os.Getenv("REDIS_HOSTS") != "" {
 		redis_host_list = strings.Split(os.Getenv("REDIS_HOSTS"), ",")
 	}
 	return redis_host_list
 }
 func getRedisPwd() string {
-	redis_passwrod := "rds_PWD"
+	redis_passwrod := ""
 	if os.Getenv("REDIS_PASSWORD") != "" {
 		redis_passwrod = os.Getenv("REDIS_PASSWORD")
 	}

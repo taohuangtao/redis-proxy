@@ -2,7 +2,6 @@ package src
 
 import (
 	"io"
-	"log"
 	"net"
 	"os"
 	"redis-proxy/src/config"
@@ -24,13 +23,13 @@ func handleConnection(clientConn net.Conn, serverAddr string) {
 	defer clientConn.Close()
 
 	if config.DEBUG {
-		log.Println("DEBUG", "new connection")
+		logger.Println("DEBUG", "new connection")
 	}
 
 	// Connect to the server
 	serverConn, err := net.Dial("tcp", serverAddr)
 	if err != nil {
-		log.Println("Error connecting to server:", err.Error())
+		logger.Println("Error connecting to server:", err.Error())
 		return
 	}
 	defer serverConn.Close()
@@ -40,7 +39,7 @@ func handleConnection(clientConn net.Conn, serverAddr string) {
 	io.Copy(clientConn, serverConn)    // server -> client
 
 	if config.DEBUG {
-		log.Println("DEBUG", "connection closed")
+		logger.Println("DEBUG", "connection closed")
 	}
 }
 
@@ -52,7 +51,7 @@ func checkMaster() {
 	defer ticker.Stop()
 	for range ticker.C {
 		if config.DEBUG {
-			log.Println("DEBUG", "checking master")
+			logger.Println("DEBUG", "checking master")
 		}
 		rwLock.Lock() // 写锁
 		redisInfo.master_host = GetMaster(redisInfo.host_list, redisInfo.password)
@@ -81,17 +80,17 @@ func RunProxy(local_addr string, host_list []string, password string) {
 	// Listen for incoming connections
 	listener, err := net.Listen("tcp", localAddr)
 	if err != nil {
-		log.Println("ERROR", "Error starting TCP server:", err.Error())
+		logger.Println("ERROR", "Error starting TCP server:", err.Error())
 		os.Exit(1)
 	}
 	defer listener.Close()
-	log.Println("TCP Proxy listening on", localAddr)
+	logger.Println("TCP Proxy listening on", localAddr)
 
 	for {
 		// Wait for a connection
 		clientConn, err := listener.Accept()
 		if err != nil {
-			log.Println("ERROR", " accepting connection:", err.Error())
+			logger.Println("ERROR", " accepting connection:", err.Error())
 			continue
 		}
 		remoteAddr := getMaster()
