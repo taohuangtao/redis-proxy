@@ -21,6 +21,7 @@ func check(host string, password string) bool {
 		Password: password, // 如果没有密码则留空
 		DB:       0,        // 使用默认数据库
 	})
+	defer rdb.Close()
 
 	// 测试连接
 	_, err := rdb.Ping(ctx).Result()

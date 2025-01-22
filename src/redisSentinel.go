@@ -95,6 +95,7 @@ func (t *Task) _run() {
 				Password: t.PASSWORD,
 				DB:       0,
 			})
+			defer rdb.Close()
 			info, err := rdb.Info(context.Background(), "replication").Result()
 			if err != nil {
 				logger.Printf("Connection error, skipping %s err: %s", _master_host, err)
@@ -121,6 +122,7 @@ func (t *Task) _run() {
 			Password: t.PASSWORD,
 			DB:       0,
 		})
+		defer rdb.Close()
 		info, err := rdb.Info(context.Background(), "replication").Result()
 		if err != nil {
 			logger.Printf("Connection error, skipping %s", redis_host)
@@ -163,6 +165,7 @@ func (t *Task) _run() {
 			Password: t.PASSWORD,
 			DB:       0,
 		})
+		defer rdb.Close()
 		rdb.SlaveOf(context.Background(), "NO", "ONE")
 	}
 
@@ -189,6 +192,7 @@ func (t *Task) _run() {
 			Password: t.PASSWORD,
 			DB:       0,
 		})
+		defer rdb.Close()
 		info, err := rdb.Info(context.Background(), "replication").Result()
 		if err != nil {
 			logger.Printf("ERROR Connection error, skipping %s", slave_host)
@@ -203,6 +207,7 @@ func (t *Task) _run() {
 			logger.Printf("重新连上 master[ slave: %s master: %s ]", slave_host, master_host)
 			rdb.SlaveOf(context.Background(), masterInfo[0], masterInfo[1])
 		}
+
 	}
 }
 
