@@ -35,8 +35,13 @@ func handleConnection(clientConn net.Conn, serverAddr string) {
 	defer serverConn.Close()
 
 	// Copy data from client to server and vice versa
-	go io.Copy(serverConn, clientConn) // client -> server
-	io.Copy(clientConn, serverConn)    // server -> client
+
+	go func() {
+		defer clientConn.Close()
+		defer serverConn.Close()
+		io.Copy(serverConn, clientConn) // client -> server
+	}()
+	io.Copy(clientConn, serverConn) // server -> client
 
 	if config.DEBUG {
 		logger.Println("DEBUG", "connection closed")
