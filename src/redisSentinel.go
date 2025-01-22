@@ -132,7 +132,10 @@ func (t *Task) _run() {
 
 		// 是role:master
 		if strings.Contains(info, "role:master") {
-			logger.Printf("is master %s", redis_host)
+			if config.DEBUG {
+				logger.Printf("is master %s", redis_host)
+			}
+
 			if master_host == "" {
 				// 上一轮没有master,把这个设置为master
 				master_host = redis_host
@@ -163,17 +166,19 @@ func (t *Task) _run() {
 		rdb.SlaveOf(context.Background(), "NO", "ONE")
 	}
 
-	logger.Printf("-------- master %s -------", master_host)
+	if config.DEBUG {
+		logger.Printf("-------- master %s -------", master_host)
+	}
 	// 存储最终master
 	_, err = t.zk.Create("/redis_ht_sentinel/last_master", []byte(master_host), 0, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		if err == zk.ErrNodeExists {
 			_, err = t.zk.Set("/redis_ht_sentinel/last_master", []byte(master_host), -1)
 			if err != nil {
-				logger.Fatalf("Failed to set last master data: %v", err)
+				logger.Fatalf("ERROR Failed to set last master data: %v", err)
 			}
 		} else {
-			logger.Fatalf("Failed to create last master data: %v", err)
+			logger.Fatalf("ERROR Failed to create last master data: %v", err)
 		}
 	}
 
@@ -186,7 +191,7 @@ func (t *Task) _run() {
 		})
 		info, err := rdb.Info(context.Background(), "replication").Result()
 		if err != nil {
-			logger.Printf("Connection error, skipping %s", slave_host)
+			logger.Printf("ERROR Connection error, skipping %s", slave_host)
 			continue
 		}
 		if config.DEBUG {
@@ -203,11 +208,15 @@ func (t *Task) _run() {
 
 func RunSentinel() {
 	for {
-		logger.Println("start")
+		if config.DEBUG {
+			logger.Println("start")
+		}
 		task := newTask()
 		task.run()
 		task.clear()
-		logger.Println("睡眠随机时间")
+		if config.DEBUG {
+			logger.Println("睡眠随机时间")
+		}
 		time.Sleep(time.Duration(1+rand.Float64()*10) * time.Second)
 	}
 }
