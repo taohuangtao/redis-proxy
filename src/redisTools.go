@@ -20,6 +20,7 @@ func check(host string, password string) bool {
 		Addr:     host,     // Redis服务器地址
 		Password: password, // 如果没有密码则留空
 		DB:       0,        // 使用默认数据库
+		PoolSize: 1,        // 禁用连接池，在这里无意义
 	})
 	defer rdb.Close()
 

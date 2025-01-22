@@ -94,6 +94,7 @@ func (t *Task) _run() {
 				Addr:     _master_host,
 				Password: t.PASSWORD,
 				DB:       0,
+				PoolSize: 1, // 禁用连接池，在这里无意义
 			})
 			defer rdb.Close()
 			info, err := rdb.Info(context.Background(), "replication").Result()
@@ -121,6 +122,7 @@ func (t *Task) _run() {
 			Addr:     redis_host,
 			Password: t.PASSWORD,
 			DB:       0,
+			PoolSize: 1, // 禁用连接池，在这里无意义
 		})
 		defer rdb.Close()
 		info, err := rdb.Info(context.Background(), "replication").Result()
@@ -164,6 +166,7 @@ func (t *Task) _run() {
 			Addr:     master_host,
 			Password: t.PASSWORD,
 			DB:       0,
+			PoolSize: 1, // 禁用连接池，在这里无意义
 		})
 		defer rdb.Close()
 		rdb.SlaveOf(context.Background(), "NO", "ONE")
@@ -191,6 +194,7 @@ func (t *Task) _run() {
 			Addr:     slave_host,
 			Password: t.PASSWORD,
 			DB:       0,
+			PoolSize: 1, // 禁用连接池，在这里无意义
 		})
 		defer rdb.Close()
 		info, err := rdb.Info(context.Background(), "replication").Result()
