@@ -5,12 +5,21 @@ import (
 	"strings"
 )
 
-var DEBUG bool = getDebug()
-var LOCAL_ADDR string = getLocalAddr()
-var REDIS_HOSTS []string = getRedisHosts()
-var REDIS_PWD string = getRedisPwd()
-var ZK_HOSTS []string = getZkHosts()
-var RUN_REDIS_SENTINEL bool = useRunRedisSentinel()
+var DEBUG bool
+var LOCAL_ADDR string
+var REDIS_HOSTS []string
+var REDIS_PWD string
+var ZK_HOSTS []string
+var RUN_REDIS_SENTINEL bool
+
+func init() {
+	DEBUG = getDebug()
+	LOCAL_ADDR = getLocalAddr()
+	REDIS_HOSTS = getRedisHosts()
+	REDIS_PWD = getRedisPwd()
+	ZK_HOSTS = getZkHosts()
+	RUN_REDIS_SENTINEL = useRunRedisSentinel()
+}
 
 func getDebug() bool {
 	return os.Getenv("DEBUG") == "true"

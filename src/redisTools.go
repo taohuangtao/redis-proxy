@@ -9,8 +9,6 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-var DEBUG bool = config.DEBUG
-
 func check(host string, password string) bool {
 	// 创建一个上下文
 	ctx := context.Background()
@@ -29,7 +27,7 @@ func check(host string, password string) bool {
 	if err != nil {
 		logger.Fatalf("Error connecting to Redis: %v Host: %v", err, host)
 	}
-	if DEBUG {
+	if config.DEBUG {
 		logger.Println("DEBUG", host+"Connected to Redis")
 	}
 
@@ -38,7 +36,7 @@ func check(host string, password string) bool {
 	if err != nil {
 		logger.Fatalf("Error checking Redis role: %v", err)
 	}
-	if DEBUG {
+	if config.DEBUG {
 		if isMaster {
 			logger.Println("DEBUG", host+" is a master.")
 		} else {
@@ -54,7 +52,7 @@ func GetMaster(host_list []string, password string) string {
 	for i := 0; i < count; i++ {
 		host := host_list[i]
 		if check(host, password) {
-			if DEBUG {
+			if config.DEBUG {
 				logger.Println("DEBUG", host+" is a master.")
 			}
 			return host
@@ -67,7 +65,7 @@ func isRedisMaster(ctx context.Context, client *redis.Client) (bool, error) {
 	// INFO 命令获取关于 Redis 服务器的各种信息和统计
 	info, err := client.Info(ctx, "replication").Result()
 
-	if DEBUG {
+	if config.DEBUG {
 		// log.Println("DEBUG", "info: "+info)
 	}
 	if err != nil {
