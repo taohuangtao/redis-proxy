@@ -25,7 +25,7 @@ func check(host string, password string) bool {
 	// 测试连接
 	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
-		logger.Fatalf("Error connecting to Redis: %v Host: %v", err, host)
+		logger.Printf("Error connecting to Redis: %v Host: %v", err, host)
 	}
 	if config.DEBUG {
 		logger.Println("DEBUG", host+"Connected to Redis")
@@ -34,7 +34,7 @@ func check(host string, password string) bool {
 	// 检查是否为主节点
 	isMaster, err := isRedisMaster(ctx, rdb)
 	if err != nil {
-		logger.Fatalf("Error checking Redis role: %v", err)
+		logger.Printf("Error checking Redis role: %v", err)
 	}
 	if config.DEBUG {
 		if isMaster {

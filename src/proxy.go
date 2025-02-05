@@ -1,8 +1,10 @@
 package src
 
 import (
+	"encoding/json"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"redis-proxy/src/config"
 	"sync"
@@ -10,9 +12,9 @@ import (
 )
 
 type RedisInfo struct {
-	master_host string
-	host_list   []string
-	password    string
+	Master_host string
+	Host_list   []string
+	Password    string
 }
 
 var redisInfo = RedisInfo{}
@@ -49,7 +51,7 @@ func handleConnection(clientConn net.Conn, serverAddr string) {
 }
 
 func checkMaster() {
-	redisInfo.master_host = GetMaster(redisInfo.host_list, redisInfo.password)
+	redisInfo.Master_host = GetMaster(redisInfo.Host_list, redisInfo.Password)
 
 	// 定时执行master检查
 	ticker := time.NewTicker(10 * time.Second)
@@ -59,7 +61,7 @@ func checkMaster() {
 			logger.Println("DEBUG", "checking master")
 		}
 		rwLock.Lock() // 写锁
-		redisInfo.master_host = GetMaster(redisInfo.host_list, redisInfo.password)
+		redisInfo.Master_host = GetMaster(redisInfo.Host_list, redisInfo.Password)
 		rwLock.Unlock()
 	}
 }
@@ -67,14 +69,22 @@ func checkMaster() {
 func getMaster() string {
 	rwLock.RLock()
 	defer rwLock.RUnlock()
-	return redisInfo.master_host
+	return redisInfo.Master_host
+}
+
+func RunInfo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	rwLock.RLock()
+	defer rwLock.RUnlock()
+	b, _ := json.Marshal(redisInfo)
+	w.Write(b)
 }
 
 func RunProxy(local_addr string, host_list []string, password string) {
 	// Define the local address to listen on and the remote server address
 	localAddr := local_addr //"127.0.0.1:8080"
-	redisInfo.host_list = host_list
-	redisInfo.password = password
+	redisInfo.Host_list = host_list
+	redisInfo.Password = password
 	// 启动master检查
 	go checkMaster()
 	// 启动redis sentinel
@@ -90,6 +100,9 @@ func RunProxy(local_addr string, host_list []string, password string) {
 	}
 	defer listener.Close()
 	logger.Println("TCP Proxy listening on", localAddr)
+
+	// 暴露信息
+	http.HandleFunc("/debug/proxy/runinfo", RunInfo)
 
 	for {
 		// Wait for a connection

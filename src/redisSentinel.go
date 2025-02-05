@@ -61,7 +61,7 @@ func (t *Task) lock() bool {
 		if err == zk.ErrNodeExists {
 			return false
 		}
-		logger.Fatalf("Failed to create lock node: %v", err)
+		logger.Printf("Failed to create lock node: %v", err)
 	}
 	return true
 }
