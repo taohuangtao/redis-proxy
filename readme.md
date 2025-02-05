@@ -12,3 +12,10 @@ REDIS_PASSWORD=123456 # redis密码
 ZK_HOSTS=192.168.1.21:2181,192.168.1.22:2181,192.168.1.23:2181 # zookeeper地址，多个用逗号分隔
 RUN_REDIS_SENTINEL=true # 是否使用redis哨兵
 ```
+
+
+
+## 查看运行信息
+```
+curl http://localhost:6060/debug/proxy/runinfo
+```
