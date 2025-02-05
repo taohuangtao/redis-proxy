@@ -76,7 +76,10 @@ func RunInfo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	rwLock.RLock()
 	defer rwLock.RUnlock()
-	b, _ := json.Marshal(redisInfo)
+	var info = make(map[string]interface{})
+	info["Master_host"] = redisInfo.Master_host
+	info["Host_list"] = redisInfo.Host_list
+	b, _ := json.Marshal(info)
 	w.Write(b)
 }
 
